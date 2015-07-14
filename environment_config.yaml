@@ -1,7 +1,1 @@
-attributes:
-  fuel-plugin-swift_text:
-    value: 'Set default value'
-    label: 'Text field'
-    description: 'Description for text field'
-    weight: 25
-    type: "text"
+# No attributes to change yet
