@@ -1,4 +1,4 @@
-- role: ['os-base']
+- role: ['base-os']
   stage: post_deployment
   type: puppet
   parameters:

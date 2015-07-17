@@ -1,1 +1,7 @@
-# No attributes to change yet
+attributes:
+  test:
+    value: 'test'
+    label: 'test'
+    description: 'test'
+    weight: 10
+    type: "text"
