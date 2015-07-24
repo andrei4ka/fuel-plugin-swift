@@ -1,0 +1,14 @@
+{
+  "name": "sshevchenko-standalone_swift",
+  "version": "0.1.0",
+  "author": "sshevchenko",
+  "summary": "Module configures a standalone Swift cluster",
+  "license": "Apache-2.0",
+  "source": "https://github.com/sheva-serg/fuel-plugin-swift",
+  "project_page": "https://github.com/sheva-serg/fuel-plugin-swift",
+  "issues_url": "https://github.com/sheva-serg/fuel-plugin-swift/issues",
+  "dependencies": [
+    {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
+  ]
+}
+
