@@ -1,31 +1,38 @@
+# standalone_swift class
+
 class standalone_swift {
 
   if hiera('user_node_name') =~ /^swift-.*$/ {
 
     notice('Fuel plugin swift, standalone_swift puppet module, init.pp')
 
-    $swift_hash          = hiera('swift_hash')
-    #$swift_nodes         = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-.*$')
-    $swift_nodes         = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-storage-\d*$')
+    $swift_hash            = hiera('swift_hash')
+    $swift_nodes           = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-storage-\d*$')
+    $primary_swift         = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-proxy-primary-\d*$')
+    $master_swift_proxy_ip = $primary_swift[0]['storage_address']
+    $proxy_port            = pick($swift_hash['proxy_port'], '8080')
+    $network_scheme        = hiera('network_scheme', {})
+    $storage_hash          = hiera('storage_hash')
+    $mp_hash               = hiera('mp')
+    $management_vip        = hiera('management_vip')
+    $debug                 = hiera('debug', false)
+    $verbose               = hiera('verbose')
+    $storage_address       = hiera('storage_address')
+    $node                  = hiera('node')
+    $ring_min_part_hours   = hiera('swift_ring_min_part_hours', 1)
+    $swift_partition       = pick($swift_hash['swift_partition'], '/var/lib/storage')
+    $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
+    $storage_type          = pick($swift_hash['storage_type'], false)
+    $resize_value          = pick($swift_hash['resize_value'], 2)
+
     $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-proxy-(primary-)?\d*$')
     $swift_proxies       = nodes_to_hash($proxies,'name','internal_address')
-    $primary_swift       = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-proxy-primary-\d*$')
-    if $primary_swift[0] {
-      $master_swift_proxy_ip = $primary_swift[0]['storage_address']
-    } else {
-      $master_swift_proxy_ip = $proxies[0]['storage_address']
-    }
-    $proxy_port          = hiera('proxy_port', '8080')
-    $network_scheme      = hiera('network_scheme', {})
-    $storage_hash        = hiera('storage_hash')
-    $mp_hash             = hiera('mp')
-    $management_vip      = hiera('management_vip')
-    $debug               = hiera('debug', false)
-    $verbose             = hiera('verbose')
-    $storage_address     = hiera('storage_address')
-    $node                = hiera('node')
-    $ring_min_part_hours = hiera('swift_ring_min_part_hours', 1)
 
+    $ring_part_power = calc_ring_part_power($swift_nodes,$resize_value)
+    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
+    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
+
+    # Configure networking on a node, during a stage prior to main
     prepare_network_config(hiera('network_scheme'))
     $stub = generate_network_config()
 
@@ -37,21 +44,33 @@ class standalone_swift {
       stage   => 'netconfig',
     }
 
-    if !(hiera('swift_partition', false)) {
-      $swift_partition = '/var/lib/glance/node'
-    }
-
-    if ($primary_swift) {
+    # If the manifest is currently running on a primary proxy set $primary_proxy
+    if ($primary_swift[0]['user_node_name'] == hiera('user_node_name')) {
       $primary_proxy = true
     } else {
       $primary_proxy = false
     }
 
+    # Generate rings on a primary controller node
+    if $primary_proxy {
+      ring_devices {'all':
+        storages => $swift_nodes,
+        require  => Class['swift'],
+      }
+    }
+
     if hiera('user_node_name') =~ /^swift-storage-\d*$/ {
 
+      file { $swift_partition:
+        ensure => 'directory',
+        owner  => 'swift',
+        group  => 'swift',
+        mode   => '0750',
+      } ->
+
       class { 'openstack::swift::storage_node':
-        storage_type          => false,
-        loopback_size         => '5243780',
+        storage_type          => $storage_type,
+        loopback_size         => $loopback_size,
         storage_mnt_base_dir  => $swift_partition,
         storage_devices       => filter_hash($mp_hash,'point'),
         swift_zone            => $node[0]['swift_zone'],
@@ -64,23 +83,6 @@ class standalone_swift {
       }
 
     }
-
-    if $primary_proxy {
-      ring_devices {'all':
-        storages => $swift_nodes,
-        require  => Class['swift'],
-      }
-    }
-
-    if has_key($swift_hash, 'resize_value') {
-      $resize_value = $swift_hash['resize_value']
-    } else {
-      $resize_value = 2
-    }
-
-    $ring_part_power = calc_ring_part_power($swift_nodes,$resize_value)
-    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
-    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
 
     if hiera('user_node_name') =~ /^swift-proxy-(primary-)?\d*$/ {
 
@@ -100,6 +102,10 @@ class standalone_swift {
         ring_min_part_hours     => $ring_min_part_hours,
       } ->
 
+      package { 'fuel-ha-utils':
+        ensure => installed,
+      } ->
+
       class { 'openstack::swift::status':
         endpoint    => "http://${storage_address}:${proxy_port}",
         vip         => $management_vip,
@@ -109,14 +115,16 @@ class standalone_swift {
 
     }
 
-    #  class { 'swift::keystone::auth':
-    #    password         => $swift_hash['user_password'],
-    #    public_address   => hiera('public_vip'),
-    #    internal_address => $management_vip,
-    #    admin_address    => $management_vip,
-    #  }
+    # setup a cronjob to rebalance and repush rings periodically
+    class { 'openstack::swift::rebalance_cronjob':
+      ring_rebalance_period => min($ring_min_part_hours * 2, 23),
+      master_swift_proxy_ip => $master_swift_proxy_ip,
+      primary_proxy         => $primary_proxy,
+    }
 
   }
+
+}
 
 # 'ceilometer' class is being declared inside openstack::ceilometer class
 # which is declared inside openstack::controller class in the other task.
@@ -124,4 +132,8 @@ class standalone_swift {
 class ceilometer {}
 include ceilometer
 
-}
+# Class[Swift::Proxy::Cache] requires Class[Memcached] if memcache_servers
+# contains 127.0.0.1. But we're deploying memcached in another task. So we
+# need to add this stub here.
+class memcached {}
+include memcached

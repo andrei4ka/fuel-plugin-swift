@@ -1,7 +1,44 @@
 attributes:
-  test:
-    value: 'test'
-    label: 'test'
-    description: 'test'
+  storage_type:
+    value: 'false'
+    label: 'Create and mount loopback devices for swift.'
+    description: 'Protocol (UDP or TCP) used for SNMP communication.'
     weight: 10
+    type: 'radio'
+    values:
+      - data: 'false'
+        label: 'No'
+        description: "No, use partition/device as is."
+      - data: 'loopback'
+        label: 'Yes'
+        description: 'Yes, create and mount loopback devices.'
+  loopback_size:
+    value: '5243780'
+    label: 'Loopback size'
+    description: 'Size of the loopback device to create.'
+    weight: 20
     type: "text"
+    regex:
+      source: '^\d+$'
+      error: "Size should be numeral."
+    restrictions:
+      - condition: settings:swift.storage_type.value != 'loopback'
+        action: hide
+  swift_partition:
+    value: '/var/lib/storage'
+    label: 'Partition'
+    description: 'Partition/device which will be used to store Swift data.'
+    weight: 30
+    type: "text"
+    regex:
+      source: '^\S+$'
+      error: "Path should not be empty."
+  resize_value:
+    value: '2'
+    label: 'Resize value'
+    description: 'Resize value.'
+    weight: 40
+    type: "text"
+    regex:
+      source: '^\d+$'
+      error: "Resize value should be numeral."
