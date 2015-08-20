@@ -1,3 +1,3 @@
-notice('Fuel plugin standalone_swift: controller.pp')
+notice('MODULAR: /standalone_swift/controller.pp')
 
 include ::standalone_swift::controller

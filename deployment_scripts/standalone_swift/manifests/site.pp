@@ -1,3 +1,3 @@
-notice('Fuel plugin standalone_swift: site.pp')
+notice('MODULAR: /standalone_swift/site.pp')
 
 include ::standalone_swift

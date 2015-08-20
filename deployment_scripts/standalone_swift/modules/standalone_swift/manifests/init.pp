@@ -2,6 +2,6 @@
 
 class standalone_swift {
 
-  notice('MODULAR: class standalone_swift')
+  notice('MODULAR: class standalone_swift/init.pp')
 
 }
