@@ -1,0 +1,55 @@
+- id: swift-proxy
+  type: group
+  role: [swift-proxy]
+  tasks:
+    - hiera
+    - globals
+  required_for: [deploy_end]
+  requires: [deploy_start]
+  parameters:
+    strategy:
+      type: parallel
+
+- id: primary-swift-proxy
+  type: group
+  role: [primary-swift-proxy]
+  tasks:
+    - hiera
+    - globals
+  required_for: [deploy_end]
+  requires: [deploy_start]
+  parameters:
+    strategy:
+      type: parallel
+
+- id: swift-storage
+  type: group
+  role: [swift-storage]
+  tasks:
+    - hiera
+    - globals
+  required_for: [deploy_end]
+  requires: [deploy_start]
+  parameters:
+    strategy:
+      type: parallel
+
+- id: swift-deploy
+  type: puppet
+  groups: [primary-swift-proxy, swift-proxy, swift-storage]
+  required_for: [connectivity_tests, deploy_end]
+  requires: [netconfig, deploy_start]
+  parameters:
+    puppet_manifest: "puppet/manifests/site.pp"
+    puppet_modules: "puppet/modules:/etc/puppet/modules"
+    timeout: 3600
+
+- id: swift-controller
+  type: puppet
+  groups: [primary-controller, controller]
+  required_for: [connectivity_tests, deploy_end]
+  requires: [netconfig, deploy_start, swift-deploy]
+  parameters:
+    puppet_manifest: "puppet/manifests/controller.pp"
+    puppet_modules: "puppet/modules:/etc/puppet/modules"
+    timeout: 3600
