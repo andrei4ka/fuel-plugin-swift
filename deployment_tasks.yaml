@@ -25,7 +25,7 @@
     strategy:
       type: parallel
 
-- id: swift-proxy
+- id: swift-proxy-deploy
   type: puppet
   groups: [primary-swift-proxy, swift-proxy]
   required_for: [connectivity_tests, deploy_end]
@@ -35,7 +35,7 @@
     puppet_modules: "puppet/modules:/etc/puppet/modules"
     timeout: 3600
 
-- id: swift-storage
+- id: swift-storage-deploy
   type: puppet
   groups: [swift-storage]
   required_for: [connectivity_tests, deploy_end]
