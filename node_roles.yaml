@@ -1,12 +1,16 @@
 swift-proxy:
   name: "Swift proxy"
   description: "Role assigned to Swift proxy nodes"
+  update_required:
+    - controller
   has_primary: true                 # whether has primary role or not
   public_ip_required: false         # whether requires public net or not
   weight: 100      
 swift-storage:
   name: "Swift storage"
   description: "Role assigned to Swift storage nodes"
+  update_required:
+    - swift-proxy
   has_primary: false                # whether has primary role or not
   public_ip_required: false         # whether requires public net or not
   weight: 110      
