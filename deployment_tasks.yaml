@@ -1,8 +1,11 @@
 - id: swift-proxy
   type: group
   role: [swift-proxy]
+  tasks:
+    - hiera
+    - globals
   required_for: [deploy_end]
-  requires: [networking, deploy_start]
+  requires: [netconfig]
   parameters:
     strategy:
       type: parallel
@@ -10,8 +13,11 @@
 - id: primary-swift-proxy
   type: group
   role: [primary-swift-proxy]
+  tasks:
+    - hiera
+    - globals
   required_for: [deploy_end]
-  requires: [networking, deploy_start]
+  requires: [netconfig]
   parameters:
     strategy:
       type: one_by_one
@@ -19,8 +25,11 @@
 - id: swift-storage
   type: group
   role: [swift-storage]
+  tasks:
+    - hiera
+    - globals
   required_for: [deploy_end]
-  requires: [networking, deploy_start]
+  requires: [netconfig]
   parameters:
     strategy:
       type: parallel
@@ -28,8 +37,8 @@
 - id: swift-proxy-deploy
   type: puppet
   groups: [primary-swift-proxy, swift-proxy]
-  required_for: [connectivity_tests, deploy_end]
-  requires: [netconfig, deploy_start]
+  required_for: [deploy_end]
+  requires: [deploy_start]
   parameters:
     puppet_manifest: "puppet/manifests/proxy.pp"
     puppet_modules: "puppet/modules:/etc/puppet/modules"
@@ -38,8 +47,8 @@
 - id: swift-storage-deploy
   type: puppet
   groups: [swift-storage]
-  required_for: [connectivity_tests, deploy_end]
-  requires: [netconfig, deploy_start]
+  required_for: [deploy_end]
+  requires: [deploy_start]
   parameters:
     puppet_manifest: "puppet/manifests/storage.pp"
     puppet_modules: "puppet/modules:/etc/puppet/modules"
@@ -48,8 +57,8 @@
 - id: swift-controller
   type: puppet
   groups: [primary-controller, controller]
-  required_for: [connectivity_tests, deploy_end]
-  requires: [openstack-controller]
+  required_for: [deploy_end]
+  requires: [openstack-haproxy]
   parameters:
     puppet_manifest: "puppet/manifests/controller.pp"
     puppet_modules: "puppet/modules:/etc/puppet/modules"

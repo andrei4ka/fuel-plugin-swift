@@ -18,10 +18,10 @@
          # Optional node role list to map VIP to (defaults to
          # primary-controller and controller)
          node_roles:
-           - "swift-proxy"
+           - "primary-swift-proxy"
 - id: "swift-proxy"
   # Role mapping to network
-  default_mapping: "public"
+  default_mapping: "storage"
   properties:
     # Should be true if network role requires subnet being set
     subnet: true
@@ -41,7 +41,7 @@
            - "swift-proxy"
 - id: "swift-storage"
   # Role mapping to network
-  default_mapping: "public"
+  default_mapping: "storage"
   properties:
     # Should be true if network role requires subnet being set
     subnet: true
@@ -58,4 +58,4 @@
          # Optional node role list to map VIP to (defaults to
          # primary-controller and controller)
          node_roles:
-           - "swift-proxy"
+           - "swift-storage"
