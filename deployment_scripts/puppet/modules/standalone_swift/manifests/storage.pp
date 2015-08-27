@@ -28,7 +28,6 @@ include memcached
     $swift_partition       = pick($swift_hash['swift_partition'], '/var/lib/storage')
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
-    $resize_value          = pick($swift_hash['resize_value'], 2)
 
 #Keystone settings
 $service_endpoint        = hiera('service_endpoint')
@@ -41,7 +40,7 @@ $region                  = hiera('region', 'RegionOne')
     $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-proxy-(primary-)?\d*$')
     $swift_proxies       = nodes_to_hash($proxies,'name','internal_address')
 
-    $ring_part_power = calc_ring_part_power($swift_nodes,$resize_value)
+    $ring_part_power = pick($swift_hash['partition_power'], 15)
     $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
     $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
 

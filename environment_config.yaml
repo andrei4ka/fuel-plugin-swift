@@ -33,12 +33,12 @@ attributes:
     regex:
       source: '^\S+$'
       error: "Path should not be empty."
-  resize_value:
-    value: '2'
-    label: 'Resize value'
-    description: 'Resize value.'
+  partition_power:
+    value: '15'
+    label: 'Partition power'
+    description: 'Partition_power.'
     weight: 40
     type: "text"
     regex:
       source: '^\d+$'
-      error: "Resize value should be numeral."
+      error: "Partition power should be numeral."
