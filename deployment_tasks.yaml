@@ -4,8 +4,10 @@
   tasks:
     - hiera
     - globals
+    - hosts
+    - firewall
   required_for: [deploy_end]
-  requires: [netconfig]
+  requires: [hosts]
   parameters:
     strategy:
       type: parallel
@@ -16,8 +18,10 @@
   tasks:
     - hiera
     - globals
-  required_for: [deploy_end]
-  requires: [netconfig]
+    - hosts
+    - firewall
+  required_for: [swift-storage-deploy, deploy_end]
+  requires: [hosts]
   parameters:
     strategy:
       type: one_by_one
@@ -28,8 +32,10 @@
   tasks:
     - hiera
     - globals
+    - hosts
+    - firewall
   required_for: [deploy_end]
-  requires: [netconfig]
+  requires: [hosts]
   parameters:
     strategy:
       type: parallel

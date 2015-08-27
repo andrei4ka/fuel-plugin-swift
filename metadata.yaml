@@ -1,7 +1,7 @@
 # Plugin name
 name: swift
 # Human-readable name for your plugin
-title: Plugin for configuring standalone swift cluster
+title: Standalone Swift cluster
 # Plugin version
 version: '1.0.0'
 # Description
