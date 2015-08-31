@@ -11,17 +11,7 @@ include memcached
     $network_metadata      = hiera('network_metadata')
     $swift_hash            = hiera('swift_hash')
     $swift_nodes           = get_nodes_hash_by_roles($network_metadata, ['swift-storage'])
-
-    $swift_nodes_fix_zone = inline_template("<%=
-      $swift_nodes['nodes'].each do |key, array|
-        if array['user_node_name'][/^.*zone-(\d*)$/, 1]  # If user assigned node name contains 'zone-N' where N is a number
-          array['swift_zone'] = array['user_node_name'][/^.*zone-(\d*)$/, 1]   # Substitute swift_zone number with this number
-        end
-      end
-    %>")
-
-    $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
-    #$master_swift_proxy_ip = $primary_swift[0]['storage_address']
+    $swift_nodes_fix_zone  = fix_zone($swift_nodes)
     $proxy_port            = pick($swift_hash['proxy_port'], '8080')
     $network_scheme        = hiera('network_scheme', {})
     $storage_hash          = hiera('storage_hash')
@@ -50,6 +40,9 @@ include memcached
     $ring_part_power = pick($swift_hash['partition_power'], 15)
     $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
     $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
+
+    $swift_api_ipaddr        = regsubst($node['network_roles']['swift/api'], '\/\d+$', '')
+    $swift_storage_ipaddr    = regsubst($node['network_roles']['swift/replication'], '\/\d+$', '')
 
     $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
     $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
@@ -106,7 +99,7 @@ include memcached
     } ->
 
     class { 'openstack::swift::status':
-      endpoint    => "http://${storage_address}:${proxy_port}",
+      endpoint    => "http://${swift_api_ipaddr}:${proxy_port}",
       vip         => $management_vip,
       only_from   => "127.0.0.1 240.0.0.2 ${sto_net} ${man_net}",
       con_timeout => 5

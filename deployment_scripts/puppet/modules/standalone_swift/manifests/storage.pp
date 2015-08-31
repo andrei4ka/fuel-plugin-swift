@@ -11,8 +11,6 @@ include memcached
     $network_metadata      = hiera('network_metadata')
     $swift_hash            = hiera('swift_hash')
     $swift_nodes           = get_nodes_hash_by_roles($network_metadata, ['swift-storage'])
-    $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
-    #$master_swift_proxy_ip = $primary_swift[0]['storage_address']
     $proxy_port            = pick($swift_hash['proxy_port'], '8080')
     $network_scheme        = hiera('network_scheme', {})
     $storage_hash          = hiera('storage_hash')
@@ -26,6 +24,9 @@ include memcached
     $swift_partition       = pick($swift_hash['swift_partition'], '/var/lib/storage')
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
+
+    $swift_api_ipaddr        = regsubst($node['network_roles']['swift/api'], '\/\d+$', '')
+    $swift_storage_ipaddr    = regsubst($node['network_roles']['swift/replication'], '\/\d+$', '')
 
     # Test if storage node name has zone assignment
     validate_re($node['user_node_name'], '^.*zone-\d*$', 'Storage node does not have zone assignment in the user defined node name')
@@ -80,7 +81,7 @@ include memcached
       storage_mnt_base_dir  => $swift_partition,
       storage_devices       => filter_hash($mp_hash,'point'),
       swift_zone            => $swift_zone,
-      swift_local_net_ip    => $storage_address,
+      swift_local_net_ip    => $swift_storage_ipaddr,
       master_swift_proxy_ip => $master_swift_proxy_ip,
       master_swift_replication_ip => $master_swift_replication_ip,
       sync_rings            => ! $primary_proxy,
