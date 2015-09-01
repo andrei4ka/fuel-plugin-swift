@@ -54,4 +54,61 @@ $swift_proxies_address_map = get_node_to_ipaddr_map_by_network_role($swift_proxi
     public_ssl          => $public_ssl_hash['services'],
   }
 
+  service { 'swift-account':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-account-auditor':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-account-reaper':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-account-replicator':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-container':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-container-auditor':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-container-replicator':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-container-sync':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-object':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-object-auditor':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-container-updater':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-object-replicator':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-object-updater':
+    ensure => 'stopped',
+    enable => false,
+  }
+  service { 'swift-proxy':
+    ensure => 'stopped',
+    enable => false,
+  }
+
 }
