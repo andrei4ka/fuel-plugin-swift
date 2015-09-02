@@ -24,4 +24,60 @@ class standalone_swift::controller {
     public_ssl          => $public_ssl_hash['services'],
   }
 
+  service { 'swift-account':
+    ensure => 'stopped',
+  }
+  service { 'swift-account-auditor':
+    ensure => 'stopped',
+  }
+  service { 'swift-account-reaper':
+    ensure => 'stopped',
+  }
+  service { 'swift-account-replicator':
+    ensure => 'stopped',
+  }
+  service { 'swift-container':
+    ensure => 'stopped',
+  }
+  service { 'swift-container-auditor':
+    ensure => 'stopped',
+  }
+  service { 'swift-container-replicator':
+    ensure => 'stopped',
+  }
+  service { 'swift-container-sync':
+    ensure => 'stopped',
+  }
+  service { 'swift-object':
+    ensure => 'stopped',
+  }
+  service { 'swift-object-auditor':
+    ensure => 'stopped',
+  }
+  service { 'swift-container-updater':
+    ensure => 'stopped',
+  }
+  service { 'swift-object-replicator':
+    ensure => 'stopped',
+  }
+  service { 'swift-object-updater':
+    ensure => 'stopped',
+  }
+  service { 'swift-proxy':
+    ensure => 'stopped',
+  }
+
+  package { 'swift-proxy':
+    ensure => absent,
+    require => Service['swift-proxy'],
+  }
+  package { 'swift-container':
+    ensure => absent,
+    require => Service['swift-container'],
+  }
+  package { 'swift-object':
+    ensure => absent,
+    require => Service['swift-object'],
+  }
+
 }

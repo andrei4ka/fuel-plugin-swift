@@ -86,6 +86,4 @@ class rsync::server(
     user        => 'root',
   }
 
- }
-
 }
