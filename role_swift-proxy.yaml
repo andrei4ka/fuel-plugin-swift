@@ -1,0 +1,10 @@
+meta:
+  description: Role assigned to proxy nodes of a standalone Swift cluster
+  has_primary: true
+  name: Swift-proxy
+  update_required:
+  - controller
+name: swift-proxy 
+volumes_roles_mapping:
+- allocate_size: min
+  id: os

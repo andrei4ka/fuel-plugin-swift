@@ -1,0 +1,8 @@
+# Stub task which does nothing. For actual tasks please check updatetasks.py script!
+- role: ['primary-controller']
+  stage: post_deployment
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/site.pp
+    puppet_modules: puppet/modules:/etc/puppet/modules
+    timeout: 360

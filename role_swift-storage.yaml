@@ -1,0 +1,12 @@
+meta:
+  description: Role assigned to storage nodes of a standalone Swift cluster
+  has_primary: false                # whether has primary role or not
+  name: Swift-storage
+  update_required:
+  - swift-proxy
+name: swift-storage
+volumes_roles_mapping:
+- allocate_size: min
+  id: os
+- allocate_size: all
+  id: image
