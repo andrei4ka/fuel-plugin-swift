@@ -1,7 +1,7 @@
 meta:
   description: Role assigned to storage nodes of a standalone Swift cluster
   has_primary: false                # whether has primary role or not
-  name: Swift-storage
+  name: Swift storage
   update_required:
   - swift-proxy
 name: swift-storage

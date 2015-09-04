@@ -8,9 +8,10 @@ include memcached
 
     notice('Fuel plugin swift, standalone_swift puppet module, storage.pp')
 
-    $network_metadata      = hiera('network_metadata')
+    #$network_metadata      = hiera('network_metadata')
     $swift_hash            = hiera('swift_hash')
-    $swift_nodes           = get_nodes_hash_by_roles($network_metadata, ['swift-storage'])
+    $swift_nodes           = filter_nodes(hiera('nodes_hash'),'role','swift-storage')
+    $swift_nodes_fix_zone  = fix_zone($swift_nodes)
     $proxy_port            = pick($swift_hash['proxy_port'], '8080')
     $network_scheme        = hiera('network_scheme', {})
     $storage_hash          = hiera('storage_hash')
@@ -25,33 +26,32 @@ include memcached
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
 
-    $swift_api_ipaddr        = regsubst($node['network_roles']['swift/api'], '\/\d+$', '')
-    $swift_storage_ipaddr    = regsubst($node['network_roles']['swift/replication'], '\/\d+$', '')
-
     # Test if storage node name has zone assignment
-    validate_re($node['user_node_name'], '^.*zone-\d*$', 'Storage node does not have zone assignment in the user defined node name')
+    validate_re($node[0]['user_node_name'], '^.*zone-[1-9]\d*$', 'Storage node does not have zone assignment in the user defined node name')
     # Fetch zone number from user_node_name
-    $swift_zone = inline_template("<%= $node['user_node_name'][/^.*zone-(\d*)$/, 1] %>")
+    $swift_zone = inline_template("<%= $node['user_node_name'][/^.*zone-([1-9]\d*)$/, 1] %>")
 
     #Keystone settings
-    $service_endpoint        = hiera('service_endpoint')
-    $keystone_user           = pick($swift_hash['user'], 'swift')
-    $keystone_password       = pick($swift_hash['user_password'], 'passsword')
-    $keystone_tenant         = pick($swift_hash['tenant'], 'services')
-    $keystone_protocol       = pick($swift_hash['auth_protocol'], 'http')
-    $region                  = hiera('region', 'RegionOne')
+    #$service_endpoint        = hiera('service_endpoint')
+    #$keystone_user           = pick($swift_hash['user'], 'swift')
+    #$keystone_password       = pick($swift_hash['user_password'], 'passsword')
+    #$keystone_tenant         = pick($swift_hash['tenant'], 'services')
+    #$keystone_protocol       = pick($swift_hash['auth_protocol'], 'http')
+    #$region                  = hiera('region', 'RegionOne')
 
-    $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'user_node_name','^swift-proxy-(primary-)?\d*$')
+    $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'role','^(primary-)?swift-proxy$')
     $swift_proxies       = nodes_to_hash($proxies,'name','internal_address')
+    $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
+    $master_swift_proxy_ip = $primary_swift[0]['storage_address']
 
     $ring_part_power = pick($swift_hash['partition_power'], 15)
-    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
-    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
-
-    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
-    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
-    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
-    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
+#    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
+#    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
+#
+#    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
+#    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
+#    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
+#    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
 
     # Configure networking on a node, during a stage prior to main
     prepare_network_config(hiera('network_scheme'))
@@ -76,24 +76,23 @@ include memcached
     } ->
 
     class { 'openstack::swift::storage_node':
-      storage_type          => $storage_type,
-      loopback_size         => $loopback_size,
-      storage_mnt_base_dir  => $swift_partition,
-      storage_devices       => filter_hash($mp_hash,'point'),
-      swift_zone            => $swift_zone,
-      swift_local_net_ip    => $swift_storage_ipaddr,
-      master_swift_proxy_ip => $master_swift_proxy_ip,
-      master_swift_replication_ip => $master_swift_replication_ip,
-      sync_rings            => ! $primary_proxy,
-      debug                 => $debug,
-      verbose               => $verbose,
-      log_facility          => 'LOG_SYSLOG',
+        storage_type          => $storage_type,
+        loopback_size         => $loopback_size,
+        storage_mnt_base_dir  => $swift_partition,
+        storage_devices       => filter_hash($mp_hash,'point'),
+        swift_zone            => $swift_zone,
+        swift_local_net_ip    => $storage_address,
+        master_swift_proxy_ip => $master_swift_proxy_ip,
+        sync_rings            => ! $primary_proxy,
+        debug                 => $debug,
+        verbose               => $verbose,
+        log_facility          => 'LOG_SYSLOG',
     }
 
   # setup a cronjob to rebalance and repush rings periodically
   class { 'openstack::swift::rebalance_cronjob':
     ring_rebalance_period => min($ring_min_part_hours * 2, 23),
-    master_swift_replication_ip => $master_swift_replication_ip,
+    master_swift_proxy_ip => $master_swift_proxy_ip,
     primary_proxy         => $primary_proxy,
   }
 

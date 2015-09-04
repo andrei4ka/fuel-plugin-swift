@@ -1,5 +1,5 @@
 # Stub task which does nothing. For actual tasks please check updatetasks.py script!
-- role: ['primary-controller']
+- role: '*'
   stage: post_deployment
   type: puppet
   parameters:
