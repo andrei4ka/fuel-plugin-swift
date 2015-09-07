@@ -8,7 +8,6 @@ include memcached
 
     notice('Fuel plugin swift, standalone_swift puppet module, storage.pp')
 
-    #$network_metadata      = hiera('network_metadata')
     $swift_hash            = hiera('swift_hash')
     $swift_nodes           = filter_nodes(hiera('nodes_hash'),'role','swift-storage')
     $swift_nodes_fix_zone  = fix_zone($swift_nodes)
@@ -22,22 +21,21 @@ include memcached
     $storage_address       = hiera('storage_address')
     $node                  = hiera('node')
     $ring_min_part_hours   = hiera('swift_ring_min_part_hours', 1)
-    $swift_partition       = pick($swift_hash['swift_partition'], '/var/lib/storage')
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
+
+
+    # Check swift::storage::all manifest for details on custom device paths
+    $swift_account_device   = pick($swift_hash['swift_account_device'], '/srv/node')
+    $swift_container_device = pick($swift_hash['swift_container_device'], '/srv/node')
+    $swift_object_device    = pick($swift_hash['swift_object_device'], '/var/lib/glance/node')
+
+    $swift_device_list = unique([ $swift_account_device, $swift_container_device, $swift_object_device ])
 
     # Test if storage node name has zone assignment
     validate_re($node[0]['user_node_name'], '^.*zone-[1-9]\d*$', 'Storage node does not have zone assignment in the user defined node name')
     # Fetch zone number from user_node_name
     $swift_zone = inline_template("<%= $node['user_node_name'][/^.*zone-([1-9]\d*)$/, 1] %>")
-
-    #Keystone settings
-    #$service_endpoint        = hiera('service_endpoint')
-    #$keystone_user           = pick($swift_hash['user'], 'swift')
-    #$keystone_password       = pick($swift_hash['user_password'], 'passsword')
-    #$keystone_tenant         = pick($swift_hash['tenant'], 'services')
-    #$keystone_protocol       = pick($swift_hash['auth_protocol'], 'http')
-    #$region                  = hiera('region', 'RegionOne')
 
     $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'role','^(primary-)?swift-proxy$')
     $swift_proxies       = nodes_to_hash($proxies,'name','internal_address')
@@ -45,13 +43,8 @@ include memcached
     $master_swift_proxy_ip = $primary_swift[0]['storage_address']
 
     $ring_part_power = pick($swift_hash['partition_power'], 15)
-#    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
-#    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
-#
-#    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
-#    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
-#    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
-#    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
+    $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
+    $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
 
     # Configure networking on a node, during a stage prior to main
     prepare_network_config(hiera('network_scheme'))
@@ -68,7 +61,7 @@ include memcached
     $node_role = hiera('role')
     $primary_proxy            = $node_role ? { 'primary-swift-proxy' => true, default =>false } 
     
-    file { $swift_partition:
+    file { $swift_device_list:
       ensure => 'directory',
       owner  => 'swift',
       group  => 'swift',
@@ -78,7 +71,7 @@ include memcached
     class { 'openstack::swift::storage_node':
         storage_type          => $storage_type,
         loopback_size         => $loopback_size,
-        storage_mnt_base_dir  => $swift_partition,
+        storage_mnt_base_dir  => $swift_object_device,
         storage_devices       => filter_hash($mp_hash,'point'),
         swift_zone            => $swift_zone,
         swift_local_net_ip    => $storage_address,

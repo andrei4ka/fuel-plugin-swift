@@ -8,7 +8,6 @@ include memcached
 
     notice('Fuel plugin swift, standalone_swift puppet module, proxy.pp')
 
-    #$network_metadata      = hiera('network_metadata')
     $swift_hash            = hiera('swift_hash')
     $swift_nodes           = filter_nodes(hiera('nodes_hash'),'role','swift-storage')
     $swift_nodes_fix_zone  = fix_zone($swift_nodes)
@@ -26,14 +25,6 @@ include memcached
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
 
-    #Keystone settings
-    #$service_endpoint        = hiera('service_endpoint')
-    #$keystone_user           = pick($swift_hash['user'], 'swift')
-    #$keystone_password       = pick($swift_hash['user_password'], 'passsword')
-    #$keystone_tenant         = pick($swift_hash['tenant'], 'services')
-    #$keystone_protocol       = pick($swift_hash['auth_protocol'], 'http')
-    #$region                  = hiera('region', 'RegionOne')
-
     $proxies             = filter_nodes_nonstrict(hiera('nodes_hash'),'role','^(primary-)?swift-proxy$')
     $swift_proxies       = nodes_to_hash($proxies,'name','internal_address')
     $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
@@ -42,14 +33,6 @@ include memcached
     $ring_part_power = pick($swift_hash['partition_power'], 15)
     $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
     $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
-#
-#    $swift_api_ipaddr        = regsubst($node['network_roles']['swift/api'], '\/\d+$', '')
-#    $swift_storage_ipaddr    = regsubst($node['network_roles']['swift/replication'], '\/\d+$', '')
-#
-#    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
-#    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
-#    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
-#    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
 
     # Configure networking on a node, during a stage prior to main
     prepare_network_config(hiera('network_scheme'))
