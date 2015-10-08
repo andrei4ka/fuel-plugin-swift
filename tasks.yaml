@@ -1,14 +1,8 @@
-- role: [ 'base-os' ]
+# Stub task which does nothing. For actual tasks please check  deployment_scripts/tasks/tasks.yaml
+- role: '*'
   stage: post_deployment
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
-    puppet_modules: puppet/modules:/etc/puppet/modules
-    timeout: 360
-- role: ['primary-controller','controller']
-  stage: post_deployment
-  type: puppet
-  parameters:
-    puppet_manifest: puppet/manifests/controller.pp
     puppet_modules: puppet/modules:/etc/puppet/modules
     timeout: 360

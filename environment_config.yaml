@@ -24,21 +24,39 @@ attributes:
     restrictions:
       - condition: settings:swift.storage_type.value != 'loopback'
         action: hide
-  swift_partition:
-    value: '/var/lib/storage'
-    label: 'Partition'
-    description: 'Partition/device which will be used to store Swift data.'
+  swift_object_device:
+    value: '/var/lib/glance/node'
+    label: 'Object storage path'
+    description: 'Directory hosting object Swift data.'
     weight: 30
     type: "text"
     regex:
       source: '^\S+$'
       error: "Path should not be empty."
-  resize_value:
-    value: '2'
-    label: 'Resize value'
-    description: 'Resize value.'
+  swift_container_device:
+    value: '/srv/node'
+    label: 'Container storage path'
+    description: 'Directory hosting container Swift data.'
     weight: 40
     type: "text"
     regex:
+      source: '^\S+$'
+      error: "Path should not be empty."
+  swift_account_device:
+    value: '/srv/node'
+    label: 'Account storage path'
+    description: 'Directory hosting account Swift data.'
+    weight: 50
+    type: "text"
+    regex:
+      source: '^\S+$'
+      error: "Path should not be empty."
+  partition_power:
+    value: '15'
+    label: 'Partition power'
+    description: 'Partition_power.'
+    weight: 60
+    type: "text"
+    regex:
       source: '^\d+$'
-      error: "Resize value should be numeral."
+      error: "Partition power should be numeral."

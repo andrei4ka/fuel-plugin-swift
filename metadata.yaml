@@ -1,9 +1,9 @@
 # Plugin name
 name: swift
 # Human-readable name for your plugin
-title: Plugin for configuring standalone swift cluster
+title: Standalone Swift cluster
 # Plugin version
-version: '1.0.0'
+version: '1.1.0'
 # Description
 description: Enable to configure standalone swift cluster
 # Required fuel version
@@ -11,7 +11,7 @@ fuel_version: ['7.0']
 # Specify license of your plugin
 licenses: ['Apache License Version 2.0']
 # Specify author or company name
-authors: ['Serg Shevchenko, Mirantis']
+authors: ['Serg Shevchenko, Mirantis', 'Andrey Kirilochkin, Mirantis']
 # A link to the plugin's page
 homepage: 'https://github.com/sheva-serg/fuel-plugin-swift'
 # Specify a group which your plugin implements, possible options:
@@ -28,4 +28,4 @@ releases:
 
 
 # Version of plugin package
-package_version: '3.0.0'
+package_version: '2.0.0'

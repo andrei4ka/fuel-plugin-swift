@@ -1,0 +1,33 @@
+#!/bin/bash
+
+DEBUG=true
+
+DIR=`dirname ${BASH_SOURCE[0]}`
+declare -a roles=(`ls $DIR/deployment_scripts/roles/`)
+
+FUEL='/usr/bin/fuel'
+REL=`$FUEL rel | grep -i ubuntu | awk '{print $1}'`
+FUEL_REL=`$FUEL rel | grep -i ubuntu | awk '{print $NF}'`
+
+function debug {
+  if $DEBUG; then
+    echo $@
+  fi
+}
+
+function create_roles {
+  #This will break if you try to apply to an upgraded env
+  for role in ${roles[@]}; do
+    $FUEL role --rel $REL | awk '{print $1}' | grep -qx ${role%.*}
+      if [[ $? -eq 0 ]]; then
+        $FUEL role --rel $REL --update --file ${DIR}/deployment_scripts/roles/${role}
+      else
+        $FUEL role --rel $REL --create --file ${DIR}/deployment_scripts/roles/${role}
+      fi
+  done
+}
+
+rm -f /etc/fuel/client/config.yaml
+create_roles
+cp -a ${DIR}/deployment_scripts/standalone_swift /etc/puppet/$FUEL_REL/modules/osnailyfacter/modular/
+$FUEL rel --sync-deployment-tasks --dir /etc/puppet/$FUEL_REL

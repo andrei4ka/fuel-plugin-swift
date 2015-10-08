@@ -1,0 +1,63 @@
+##############################################Custom Groups########################
+
+- id: swift-proxy
+  type: group
+  required_for: [deploy_end]
+  requires: [hosts]
+  role: [swift-proxy]
+  tasks: [hiera, globals, hosts, firewall, logging]
+  parameters:
+    strategy:
+      type: parallel
+
+- id: primary-swift-proxy
+  type: group
+  required_for: [swift-storage-deploy, deploy_end]
+  requires: [hosts]
+  role: [primary-swift-proxy]
+  tasks: [hiera, globals, hosts, firewall, logging]
+  parameters:
+    strategy:
+      type: one_by_one
+
+- id: swift-storage
+  type: group
+  required_for: [deploy_end]
+  requires: [hosts]
+  role: [swift-storage]
+  tasks: [hiera, globals, hosts, firewall, logging]
+  parameters:
+    strategy:
+      type: parallel
+
+##############################################Custom Tasks########################
+
+- id: swift-proxy-deploy
+  groups: [primary-swift-proxy, swift-proxy]
+  required_for: [deploy_end]
+  requires: [hosts]
+  type: puppet
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/proxy.pp
+    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    timeout: 3600
+
+- id: swift-storage-deploy
+  groups: [swift-storage]
+  required_for: [deploy_end]
+  requires: [hosts]
+  type: puppet
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/storage.pp
+    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    timeout: 3600
+
+- id: swift-controller
+  groups: [primary-controller, controller]
+  required_for: [deploy_end]
+  requires: [openstack-haproxy, swift]
+  type: puppet
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/controller.pp
+    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    timeout: 3600
