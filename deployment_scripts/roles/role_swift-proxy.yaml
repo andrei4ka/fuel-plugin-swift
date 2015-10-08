@@ -1,9 +1,20 @@
 meta:
   description: Role assigned to proxy nodes of a standalone Swift cluster
   has_primary: true
+  is_critical: true
+  conflicts:
+  - controller
+  - compute
+  - cinder
+  - mongo
+  - ceph-osd
+  - base-os
   name: Swift proxy
   update_required:
   - controller
+  restrictions:
+  - condition: "not (settings:swift.metadata.enabled == true)"
+    action: hide
 name: swift-proxy
 volumes_roles_mapping:
 - allocate_size: min

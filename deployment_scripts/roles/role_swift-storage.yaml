@@ -2,8 +2,19 @@ meta:
   description: Role assigned to storage nodes of a standalone Swift cluster
   has_primary: false                # whether has primary role or not
   name: Swift storage
+  is_critical: true
+  conflicts:
+  - controller
+  - compute
+  - cinder
+  - mongo
+  - ceph-osd
+  - base-os
   update_required:
   - swift-proxy
+  restrictions:
+  - condition: "not (settings:swift.metadata.enabled == true)"
+    action: hide
 name: swift-storage
 volumes_roles_mapping:
 - allocate_size: min
