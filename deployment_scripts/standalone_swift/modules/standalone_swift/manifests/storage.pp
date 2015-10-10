@@ -1,16 +1,16 @@
-# standalone_swift class
-
 class standalone_swift::storage {
 
+  notice('MODULAR: standalone_swift/storage.pp')
 
-include ceilometer
-include memcached
+  include ceilometer
+  include memcached
 
     notice('Fuel plugin swift, standalone_swift puppet module, storage.pp')
 
     $swift_hash            = hiera('swift_hash')
-    $swift_nodes           = filter_nodes(hiera('nodes_hash'),'role','swift-storage')
-    $swift_nodes_fix_zone  = fix_zone($swift_nodes)
+    $network_metadata      = hiera('network_metadata', {})
+    $swift_nodes           = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy', 'swift-proxy'])
+echo($swift_nodes, 'swift_nodes')
     $proxy_port            = pick($swift_hash['proxy_port'], '8080')
     $network_scheme        = hiera('network_scheme', {})
     $storage_hash          = hiera('storage_hash')
@@ -23,7 +23,7 @@ include memcached
     $ring_min_part_hours   = hiera('swift_ring_min_part_hours', 1)
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
-
+    $swift_zone            = hiera('swift_zone', 1)
 
     # Check swift::storage::all manifest for details on custom device paths
     $swift_account_device   = pick($swift_hash['swift_account_device'], '/srv/node')
@@ -33,15 +33,20 @@ include memcached
     $swift_device_list = unique([ $swift_account_device, $swift_container_device, $swift_object_device ])
 
     # Test if storage node name has zone assignment
-    validate_re($node[0]['user_node_name'], '^.*zone-[1-9]\d*$', 'Storage node does not have zone assignment in the user defined node name')
+#    validate_re($node[0]['user_node_name'], '^.*zone-[1-9]\d*$', 'Storage node does not have zone assignment in the user defined node name')
     # Fetch zone number from user_node_name
-    $swift_zone = inline_template("<%= $node['user_node_name'][/^.*zone-([1-9]\d*)$/, 1] %>")
+ #   $swift_zone = inline_template("<%= $node['user_node_name'][/^.*zone-([1-9]\d*)$/, 1] %>")
 
     $nodes_hash            = hiera('nodes')
     $proxies               = concat(filter_nodes($nodes_hash,'role', 'primary-swift-proxy'), filter_nodes($nodes_hash,'role', 'swift-proxy'))
     $swift_proxies         = nodes_to_hash($proxies,'name','internal_address')
     $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
-    $master_swift_proxy_ip = $primary_swift[0]['storage_address']
+
+    $swift_master_role             = 'primary-swift-proxy'
+    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, [$swift_master_role])
+    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
+    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
+    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
 
     $ring_part_power = pick($swift_hash['partition_power'], 15)
     $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
@@ -68,26 +73,26 @@ include memcached
       group  => 'swift',
       mode   => '0750',
     } ->
-
     class { 'openstack::swift::storage_node':
         storage_type          => $storage_type,
         loopback_size         => $loopback_size,
         storage_mnt_base_dir  => $swift_object_device,
         storage_devices       => filter_hash($mp_hash,'point'),
-        swift_zone            => $swift_zone,
-        swift_local_net_ip    => $storage_address,
-        master_swift_proxy_ip => $master_swift_proxy_ip,
+        swift_zone            => $master_swift_proxy_nodes_list[0]['swift_zone'],
         sync_rings            => ! $primary_proxy,
         debug                 => $debug,
         verbose               => $verbose,
         log_facility          => 'LOG_SYSLOG',
+        master_swift_replication_ip  => $master_swift_replication_ip,
+        master_swift_proxy_ip => $master_swift_proxy_ip,
     }
 
   # setup a cronjob to rebalance and repush rings periodically
+
   class { 'openstack::swift::rebalance_cronjob':
     ring_rebalance_period => min($ring_min_part_hours * 2, 23),
-    master_swift_proxy_ip => $master_swift_proxy_ip,
     primary_proxy         => $primary_proxy,
+    master_swift_replication_ip => $master_swift_replication_ip,
   }
 
 }

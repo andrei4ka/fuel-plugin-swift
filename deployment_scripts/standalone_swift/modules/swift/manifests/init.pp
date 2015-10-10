@@ -24,6 +24,7 @@
 # Copyright 2011 Puppetlabs Inc, unless otherwise noted.
 #
 class swift(
+  $max_header_size = '32768',
   $swift_hash_suffix,
   $package_ensure        = 'present',
   $client_package_ensure = 'present',

@@ -1,4 +1,4 @@
-# standalone_swift class
+notice('MODULAR: standalone_swift/proxy.pp')
 
 class standalone_swift::proxy {
 
@@ -9,8 +9,9 @@ include memcached
     notice('Fuel plugin swift, standalone_swift puppet module, proxy.pp')
 
     $swift_hash            = hiera('swift_hash')
-    $swift_nodes           = filter_nodes(hiera('nodes_hash'),'role','swift-storage')
-    $swift_nodes_fix_zone  = fix_zone($swift_nodes)
+    $network_metadata      = hiera('network_metadata', {})
+    $swift_nodes           = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy', 'swift-proxy'])
+echo($swift_nodes, 'swift_nodes')
     $proxy_port            = pick($swift_hash['proxy_port'], '8080')
     $network_scheme        = hiera('network_scheme', {})
     $storage_hash          = hiera('storage_hash')
@@ -25,10 +26,15 @@ include memcached
     $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
     $storage_type          = pick($swift_hash['storage_type'], false)
     $nodes_hash            = hiera('nodes')
-    $proxies               = concat(filter_nodes($nodes_hash,'role', 'primary-swift-proxy'), filter_nodes($nodes_hash,'role', 'swift-proxy'))
-    $swift_proxies         = nodes_to_hash($proxies,'name','internal_address')
+    $swift_proxies         = concat(filter_nodes($nodes_hash,'role', 'primary-swift-proxy'), filter_nodes($nodes_hash,'role', 'swift-proxy'))
     $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
-    $master_swift_proxy_ip = $primary_swift[0]['storage_address']
+    $service_workers       = pick($swift_hash['workers'], min(max($::processorcount, 2), 16))
+
+    $swift_master_role             = 'primary-swift-proxy'
+    $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, [$swift_master_role])
+    $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
+    $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
+    $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
 
     $ring_part_power = pick($swift_hash['partition_power'], 15)
     $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
@@ -52,25 +58,33 @@ include memcached
     # Generate rings on a primary controller node
     if $primary_proxy {
       ring_devices {'all':
-        storages => $swift_nodes_fix_zone,
+        storages => $swift_nodes,
         require  => Class['swift'],
       }
     }
 
+
+
     class { 'openstack::swift::proxy':
         swift_user_password     => $swift_hash['user_password'],
-        swift_proxies           => $swift_proxies,
         ring_part_power         => $ring_part_power,
         primary_proxy           => $primary_proxy,
-        controller_node_address => $management_vip,
-        swift_local_net_ip      => $storage_address,
-        master_swift_proxy_ip   => $master_swift_proxy_ip,
+        swift_proxy_local_ipaddr       => $swift_api_ipaddr,
+        swift_replication_local_ipaddr => $swift_storage_ipaddr,
+        master_swift_proxy_ip          => $master_swift_proxy_ip,
+        master_swift_replication_ip    => $master_swift_replication_ip,
         proxy_port              => $proxy_port,
         debug                   => $debug,
+        proxy_workers           => $service_workers,
         verbose                 => $verbose,
         log_facility            => 'LOG_SYSLOG',
         ceilometer              => hiera('use_ceilometer',false),
         ring_min_part_hours     => $ring_min_part_hours,
+        admin_user              => $keystone_user,
+        admin_tenant_name       => $keystone_tenant,
+        admin_password          => $keystone_password,
+        auth_host               => $service_endpoint,
+        auth_protocol           => $keystone_protocol,
     } ->
 
     package { 'fuel-ha-utils':
@@ -86,9 +100,9 @@ include memcached
 
     # setup a cronjob to rebalance and repush rings periodically
     class { 'openstack::swift::rebalance_cronjob':
-      ring_rebalance_period => min($ring_min_part_hours * 2, 23),
-      master_swift_proxy_ip => $master_swift_proxy_ip,
-      primary_proxy         => $primary_proxy,
+      ring_rebalance_period       => min($ring_min_part_hours * 2, 23),
+      master_swift_replication_ip => $master_swift_replication_ip,
+      primary_proxy               => $primary_proxy,
     }
 
 }

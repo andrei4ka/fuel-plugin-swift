@@ -5,7 +5,7 @@
   required_for: [deploy_end]
   requires: [hosts]
   role: [swift-proxy]
-  tasks: [hiera, globals, hosts, firewall, logging]
+  tasks: [hiera, globals, hosts, firewall, logging, fuel_pkgs, tools]
   parameters:
     strategy:
       type: parallel
@@ -15,7 +15,7 @@
   required_for: [swift-storage-deploy, deploy_end]
   requires: [hosts]
   role: [primary-swift-proxy]
-  tasks: [hiera, globals, hosts, firewall, logging]
+  tasks: [hiera, globals, hosts, firewall, logging, fuel_pkgs, tools]
   parameters:
     strategy:
       type: one_by_one
@@ -25,7 +25,7 @@
   required_for: [deploy_end]
   requires: [hosts]
   role: [swift-storage]
-  tasks: [hiera, globals, hosts, firewall, logging]
+  tasks: [hiera, globals, hosts, firewall, logging, fuel_pkgs, tools]
   parameters:
     strategy:
       type: parallel
@@ -39,7 +39,7 @@
   type: puppet
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/proxy.pp
-    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    puppet_modules: /etc/puppet/modules/:/etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules/
     timeout: 3600
 
 - id: swift-storage-deploy
@@ -49,7 +49,7 @@
   type: puppet
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/storage.pp
-    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    puppet_modules: /etc/puppet/modules/:/etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules/
     timeout: 3600
 
 - id: swift-controller
@@ -59,5 +59,5 @@
   type: puppet
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/manifests/controller.pp
-    puppet_modules: /etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules:/etc/puppet/modules
+    puppet_modules: /etc/puppet/modules/:/etc/puppet/modules/osnailyfacter/modular/standalone_swift/modules/
     timeout: 3600
