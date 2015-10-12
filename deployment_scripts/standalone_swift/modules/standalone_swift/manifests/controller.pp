@@ -1,4 +1,4 @@
-tandalone_swift::controller class configures haproxy on controller nodes
+# Standalone_swift::controller class configures haproxy on controller nodes
 # $swift_proxies contains swift proxy nodes now, not controllers
 
 class standalone_swift::controller {
