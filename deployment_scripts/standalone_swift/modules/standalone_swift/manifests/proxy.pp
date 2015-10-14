@@ -2,6 +2,9 @@ class standalone_swift::proxy {
 
   notice('MODULAR: standalone_swift/proxy.pp')
 
+  prepare_network_config(hiera('network_scheme'))
+  $stub = generate_network_config()
+
   #Some includes
   include ceilometer
   include memcached
@@ -42,7 +45,8 @@ class standalone_swift::proxy {
   $primary_swift                  = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
   $master_swift_proxy_nodes       = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
   $master_swift_proxy_nodes_list  = values($master_swift_proxy_nodes)
-
+  $memcache_hash                  = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy', 'swift-proxy'])
+  $memcaches_addr_list            = values(get_node_to_ipaddr_map_by_network_role($memcache_hash, 'management'))
   # Collecting ip-addresses
   $master_swift_proxy_ip          = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
   $master_swift_replication_ip    = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
@@ -56,9 +60,13 @@ class standalone_swift::proxy {
   $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
 
 
-  # Configure networking on a node, during a stage prior to main
-  prepare_network_config(hiera('network_scheme'))
-  $stub = generate_network_config()
+    stage {'netconfig':
+      before  => Stage['main'],
+    }
+    class { 'l23network' :
+      use_ovs => true,
+      stage   => 'netconfig',
+    }
 
   $primary_proxy = $node_role ? { 'primary-swift-proxy' => true, default =>false }
 

@@ -2,6 +2,10 @@ class standalone_swift::storage {
 
   notice('MODULAR: standalone_swift/storage.pp')
 
+  # Configure networking on a node, during a stage prior to main
+  prepare_network_config(hiera('network_scheme'))
+  $stub = generate_network_config()
+
   #Some includes
   include ceilometer
   include memcached
@@ -17,7 +21,7 @@ class standalone_swift::storage {
   $verbose               = hiera('verbose')
   $node                  = hiera('node')
   $nodes_hash            = hiera('nodes')
-
+  $node_role             = hiera('role')
   $ring_min_part_hours   = hiera('swift_ring_min_part_hours', 1)
   $loopback_size         = pick($swift_hash['loopback_size'], '5243780')
   $storage_type          = pick($swift_hash['storage_type'], false)
@@ -36,11 +40,11 @@ class standalone_swift::storage {
   $primary_swift         = filter_nodes(hiera('nodes_hash'),'role','primary-swift-proxy')
 
   # Collecting ip-addresses
-  $master_swift_storage_nodes      = get_nodes_hash_by_roles($network_metadata, ['swift-storage'])
-  $master_swift_storage_nodes_list = values($master_swift_storage_nodes)
-  $master_swift_storage_ip         = regsubst($master_swift_storage_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
-  $master_swift_replication_ip     = regsubst($master_swift_storage_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
-  $swift_zone                      = pick($master_swift_storage_nodes_list[0]['swift_zone'],'1')
+  $master_swift_proxy_nodes      = get_nodes_hash_by_roles($network_metadata, ['primary-swift-proxy'])
+  $master_swift_proxy_nodes_list = values($master_swift_proxy_nodes)
+  $master_swift_proxy_ip         = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/api'], '\/\d+$', '')
+  $master_swift_replication_ip   = regsubst($master_swift_proxy_nodes_list[0]['network_roles']['swift/replication'], '\/\d+$', '')
+  $swift_zone                    = pick($master_swift_proxy_nodes_list[0]['swift_zone'],'1')
   $swift_storage_local_ipaddr      = pick($node['network_roles']['swift/api'], '1.1.1.1')
   $swift_replication_local_ipaddr  = pick($node['network_roles']['swift/replication'], '2.2.2.2')
 
@@ -48,19 +52,7 @@ class standalone_swift::storage {
   $sto_net = $network_scheme['endpoints'][$network_scheme['roles']['storage']]['IP']
   $man_net = $network_scheme['endpoints'][$network_scheme['roles']['management']]['IP']
 
-  # Configure networking on a node, during a stage prior to main
-  prepare_network_config(hiera('network_scheme'))
-  $stub = generate_network_config()
 
-  stage {'netconfig':
-    before  => Stage['main'],
-  }
-  class { 'l23network' :
-    use_ovs => true,
-    stage   => 'netconfig',
-  }
-
-  $node_role = hiera('role')
   $primary_proxy            = $node_role ? { 'primary-swift-proxy' => true, default =>false }
 
   file { $swift_device_list:
@@ -80,7 +72,7 @@ class standalone_swift::storage {
     verbose                      => $verbose,
     log_facility                 => 'LOG_SYSLOG',
     master_swift_replication_ip  => $master_swift_replication_ip,
-    master_swift_proxy_ip        => $master_swift_storage_ip,
+    master_swift_proxy_ip        => $master_swift_proxy_ip,
     swift_local_net_ip           => $swift_replication_local_ipaddr,
   }
 

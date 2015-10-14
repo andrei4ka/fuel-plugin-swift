@@ -1,8 +1,7 @@
 # Stub task which does nothing. For actual tasks please check  deployment_scripts/tasks/tasks.yaml
 - role: '*'
-  stage: post_deployment
-  type: puppet
+  stage: pre_deployment
+  type: shell
   parameters:
-    puppet_manifest: puppet/manifests/site.pp
-    puppet_modules: puppet/modules:/etc/puppet/modules
-    timeout: 360
+    cmd: echo "Plugin OK"
+    timeout: 30
