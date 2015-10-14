@@ -106,7 +106,7 @@ class standalone_swift::proxy {
   } ->
 
   class { 'openstack::swift::status':
-    endpoint    => "http://${swift_replication_local_ipaddr}:${proxy_port}",
+    endpoint    => "http://${swift_proxy_local_ipaddr}:${proxy_port}",
     vip         => $management_vip,
     only_from   => "127.0.0.1 240.0.0.2 ${sto_net} ${man_net}",
     con_timeout => 5
