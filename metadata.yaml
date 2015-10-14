@@ -1,7 +1,7 @@
 # Plugin name
 name: swift
 # Human-readable name for your plugin
-title: Standalone Swift cluster
+title: Standalone Swift cluster for Fuel 7.0
 # Plugin version
 version: '1.1.0'
 # Description
@@ -13,7 +13,7 @@ licenses: ['Apache License Version 2.0']
 # Specify author or company name
 authors: ['Serg Shevchenko, Mirantis', 'Andrey Kirilochkin, Mirantis']
 # A link to the plugin's page
-homepage: 'https://github.com/sheva-serg/fuel-plugin-swift'
+homepage: 'https://github.com/andrei4ka/fuel-plugin-swift/tree/7.0'
 # Specify a group which your plugin implements, possible options:
 # network, storage, storage::cinder, storage::glance, hypervisor
 groups: ['storage']
